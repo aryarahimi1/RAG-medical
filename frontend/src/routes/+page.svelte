@@ -62,6 +62,14 @@
 		} | null;
 		timing: Record<string, number>;
 		error: string | null;
+		warnings?: Array<{
+			original_token: string;
+			presidio_entity: string;
+			presidio_score: number;
+			rxnorm_hit: boolean;
+			rxcui: string;
+			warning: string;
+		}>;
 		status_log?: string[];
 	};
 
@@ -1158,6 +1166,26 @@
 							<p class="note ok">No PII entities detected.</p>
 						{/if}
 					</details>
+
+					{#if currentResult.warnings && currentResult.warnings.length > 0}
+						<details class="detail-panel">
+							<summary>Redaction audit</summary>
+							<p class="muted">PII redaction layer flagged {currentResult.warnings.length} span(s) that may have masked drug names.</p>
+							<ul>
+								{#each currentResult.warnings as w}
+									<li>
+										<strong>{w.original_token}</strong> — tagged as <code>{w.presidio_entity}</code>
+										(score {w.presidio_score.toFixed(2)}).
+										{#if w.rxnorm_hit}
+											RxNorm matched <code>rxcui:{w.rxcui}</code>.
+										{:else}
+											No RxNorm match; pattern resembles a brand name.
+										{/if}
+									</li>
+								{/each}
+							</ul>
+						</details>
+					{/if}
 
 					<details class="detail-panel">
 						<summary>Drug detection &amp; auto-ingest</summary>

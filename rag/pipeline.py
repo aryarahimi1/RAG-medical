@@ -11,7 +11,7 @@ Stages
 3. auto-ingest     (optional) Fetch + index any mentioned drug we don't
                    already have, so the LLM has something real to ground on
 4. retrieve        Embed + search Chroma, top-20
-5. rerank          Cross-encoder, top-8 (default)
+5. rerank          Cross-encoder, top-5 (default)
 6. generate        DeepSeek via OpenRouter, grounded + cited
 """
 
@@ -64,7 +64,7 @@ def _thread_bundle_for_followups(
     if not turns:
         return current
 
-    max_prior = max(1, int(os.environ.get("RAG_THREAD_PRIOR_TURNS", "12")))
+    max_prior = min(50, max(1, int(os.environ.get("RAG_THREAD_PRIOR_TURNS", "12"))))
     max_chars = max(2048, int(os.environ.get("RAG_THREAD_MAX_CHARS", "10000")))
     prior = turns[-max_prior:] if len(turns) > max_prior else turns
 

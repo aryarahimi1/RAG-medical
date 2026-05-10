@@ -22,7 +22,7 @@ import pickle
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Optional, Sequence, Set
+from typing import List, Optional, Sequence, Set
 
 import chromadb
 from chromadb.config import Settings
@@ -63,8 +63,8 @@ class VectorStore:
         self.collection_name = collection_name
         self.embedding_model_name = embedding_model
 
-        logger.info("Loading encoders: doc=%s query=%s", embedding_model, DEFAULT_QUERY_ENCODER)
-        self._doc_embedder = SentenceTransformer(embedding_model)
+        logger.info("Loading query encoder: %s (doc encoder lazy-loaded on first ingest)", DEFAULT_QUERY_ENCODER)
+        self._doc_embedder: Optional[SentenceTransformer] = None
         self._query_embedder = SentenceTransformer(DEFAULT_QUERY_ENCODER)
 
         self._client = chromadb.PersistentClient(
@@ -107,10 +107,16 @@ class VectorStore:
     def count(self) -> int:
         return self._collection.count()
 
+    def _doc_encoder(self) -> SentenceTransformer:
+        if self._doc_embedder is None:
+            logger.info("Loading doc encoder: %s", self.embedding_model_name)
+            self._doc_embedder = SentenceTransformer(self.embedding_model_name)
+        return self._doc_embedder
+
     def embed(self, texts: Sequence[str]) -> List[List[float]]:
         # normalize_embeddings=True so cosine == dot product. Matches the
         # `hnsw:space=cosine` setting above.
-        return self._doc_embedder.encode(
+        return self._doc_encoder().encode(
             list(texts),
             normalize_embeddings=True,
             show_progress_bar=False,

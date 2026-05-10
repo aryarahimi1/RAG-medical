@@ -157,7 +157,7 @@ class RawDoc:
 def dailymed_setids_for_drug(drug: str, limit: int = 1) -> List[str]:
     """Look up SPL setids for a drug name. Returns up to `limit` most recent."""
     url = f"{DAILYMED_BASE}/spls.json"
-    params = {"drug_name": drug, "pagesize": 25}
+    params = {"drug_name": drug, "pagesize": max(5, limit * 5)}
     try:
         r = session.get(url, params=params, timeout=30)
         r.raise_for_status()

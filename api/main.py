@@ -81,12 +81,12 @@ app.add_middleware(
 
 class ChatMessage(BaseModel):
     role: str = Field(..., pattern="^(user|assistant)$")
-    content: str
+    content: str = Field(..., max_length=8000)
 
 
 class ChatRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=8000)
-    history: List[ChatMessage] = Field(default_factory=list)
+    history: List[ChatMessage] = Field(default_factory=list, max_length=100)
     top_k_retrieve: int = Field(20, ge=5, le=50)
     top_k_rerank: int = Field(5, ge=1, le=10)
     auto_ingest: bool = True

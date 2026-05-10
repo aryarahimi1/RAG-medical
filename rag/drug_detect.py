@@ -19,7 +19,7 @@ import re
 import time
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from threading import Lock
 from typing import Iterable, List, Optional, Set, Tuple
 
