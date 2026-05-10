@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { onMount, onDestroy, tick } from 'svelte';
 	import { browser } from '$app/environment';
 	import DOMPurify from 'isomorphic-dompurify';
 
@@ -104,6 +104,29 @@
 		return `status-${statusSeq}`;
 	}
 
+	let genSeq = 0;
+
+	function nextGenerationId() {
+		genSeq += 1;
+		return genSeq;
+	}
+
+	type Inflight = { controller: AbortController; generationId: number };
+	/** Late SSE callbacks check the generationId here — entries dropped by cancelInflightForChat make handlers no-op. */
+	const inflightByChatId = new Map<string, Inflight>();
+
+	function cancelInflightForChat(chatId: string): boolean {
+		const inflight = inflightByChatId.get(chatId);
+		if (!inflight) return false;
+		inflight.controller.abort();
+		inflightByChatId.delete(chatId);
+		return true;
+	}
+
+	function isActiveGeneration(chatId: string, generationId: number): boolean {
+		return inflightByChatId.get(chatId)?.generationId === generationId;
+	}
+
 	function createChatSession(): ChatSession {
 		const now = Date.now();
 		return {
@@ -184,7 +207,6 @@
 
 	let corpus = $state<CorpusStats | null>(null);
 	let apiConfig = $state<{
-		openrouter_model: string;
 		pii_backend: string;
 		has_openrouter_key: boolean;
 	} | null>(null);
@@ -475,6 +497,11 @@
 		}
 	});
 
+	onDestroy(() => {
+		inflightByChatId.forEach(({ controller }) => controller.abort());
+		inflightByChatId.clear();
+	});
+
 	$effect(() => {
 		if (!browser || !sessionStorageReady) return;
 		void sessions;
@@ -526,6 +553,11 @@
 	});
 
 	function startNewChat() {
+		if (cancelInflightForChat(activeChatId)) {
+			loading = false;
+			streamingMsgId = null;
+			streamingPreAnswer = false;
+		}
 		const session = createChatSession();
 		sessions = [session, ...sessions];
 		activeChatId = session.id;
@@ -537,6 +569,11 @@
 	}
 
 	function selectChat(chatId: string) {
+		if (chatId !== activeChatId && cancelInflightForChat(activeChatId)) {
+			loading = false;
+			streamingMsgId = null;
+			streamingPreAnswer = false;
+		}
 		activeChatId = chatId;
 		if (isMobile) {
 			railCollapsed = true;
@@ -545,6 +582,11 @@
 	}
 
 	function clearActiveChat() {
+		if (cancelInflightForChat(activeChatId)) {
+			loading = false;
+			streamingMsgId = null;
+			streamingPreAnswer = false;
+		}
 		updateChat(activeChatId, (session) => ({
 			...session,
 			title: 'Empty conversation',
@@ -574,6 +616,12 @@
 		if (!q || loading || !activeChat) return;
 
 		const chatId = activeChat.id;
+		// Supersede any prior in-flight request for this chat before starting a new one.
+		cancelInflightForChat(chatId);
+		const generationId = nextGenerationId();
+		const controller = new AbortController();
+		inflightByChatId.set(chatId, { controller, generationId });
+
 		const previousMessages = [...activeChat.messages];
 		const userMessage: ChatTurn = { id: nextMsgId(), role: 'user', content: q };
 		const nextTitle = previousMessages.length ? activeChat.title : titleFromQuestion(q);
@@ -636,6 +684,7 @@
 		}
 
 		function handleSSEEvent(event: string, rawData: string) {
+			if (!isActiveGeneration(chatId, generationId)) return;
 			try {
 				const data = JSON.parse(rawData);
 
@@ -719,7 +768,8 @@
 					top_k_rerank: topKRerank,
 					auto_ingest: autoIngest,
 					skip_generation: skipGeneration
-				})
+				}),
+				signal: controller.signal
 			});
 
 			if (!response.ok || !response.body) {
@@ -753,13 +803,20 @@
 				}
 			}
 		} catch (error) {
+			// Aborts (chat switch, clear, new send, unmount) are user-initiated — surface no error.
+			if (controller.signal.aborted || !isActiveGeneration(chatId, generationId)) return;
 			const message = error instanceof Error ? error.message : 'Request failed';
 			updateChat(chatId, (session) => ({ ...session, requestError: message, updatedAt: Date.now() }));
 			if (!streamedContent) removeAssistantBubble();
 		} finally {
-			loading = false;
-			streamingMsgId = null;
-			streamingPreAnswer = false;
+			if (inflightByChatId.get(chatId)?.generationId === generationId) {
+				inflightByChatId.delete(chatId);
+			}
+			if (chatId === activeChatId) {
+				loading = false;
+				streamingMsgId = null;
+				streamingPreAnswer = false;
+			}
 		}
 	}
 
@@ -974,7 +1031,6 @@
 				<details class="meta-card">
 					<summary>Model &amp; privacy</summary>
 					{#if apiConfig}
-						<p><span class="muted">Generation</span> <strong>{apiConfig.openrouter_model}</strong></p>
 						<p><span class="muted">PII backend</span> <strong>{apiConfig.pii_backend}</strong></p>
 						<p class={apiConfig.has_openrouter_key ? 'ok-text' : 'warn-text'}>
 							{apiConfig.has_openrouter_key ? 'OpenRouter key available' : 'No OpenRouter key; retrieval-only mode enabled'}

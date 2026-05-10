@@ -19,7 +19,7 @@ from typing import Any, List, Optional
 
 import rag._transformers_env  # noqa: F401 — before transformers
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -29,6 +29,11 @@ from rag.pipeline import RAGPipeline
 from rag.retrieve import get_store
 
 logger = logging.getLogger(__name__)
+
+
+class _StreamCancelled(BaseException):
+    """Subclasses BaseException (not Exception) so it slips past the pipeline's
+    `except Exception` block and unwinds the worker thread cleanly on disconnect."""
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
@@ -174,7 +179,7 @@ def chat(body: ChatRequest) -> dict[str, Any]:
 
 
 @app.post("/api/chat/stream")
-async def chat_stream(body: ChatRequest) -> StreamingResponse:
+async def chat_stream(body: ChatRequest, request: Request) -> StreamingResponse:
     """SSE endpoint — emits status, token, result, and done frames."""
     q = body.question.strip()
     if not q:
@@ -193,16 +198,29 @@ async def chat_stream(body: ChatRequest) -> StreamingResponse:
             i += 1
 
     pipeline = get_pipeline()
-    event_queue: _queue.Queue = _queue.Queue()
+    event_queue: _queue.Queue = _queue.Queue(maxsize=512)
+    cancel_event = threading.Event()
+
+    def _put(item: Any) -> None:
+        try:
+            event_queue.put(item, timeout=1.0)
+        except _queue.Full:
+            cancel_event.set()
 
     def run_pipeline() -> None:
         def on_status(msg: str) -> None:
-            event_queue.put({"event": "status", "data": msg})
+            if cancel_event.is_set():
+                raise _StreamCancelled()
+            _put({"event": "status", "data": msg})
 
         def on_token(token: str) -> None:
-            event_queue.put({"event": "token", "data": token})
+            if cancel_event.is_set():
+                raise _StreamCancelled()
+            _put({"event": "token", "data": token})
 
         def on_missing_drugs(drug_names: List[str]) -> None:
+            if cancel_event.is_set():
+                raise _StreamCancelled()
             # Only emit a conversational pre-answer when the LLM will actually run.
             if body.skip_generation:
                 return
@@ -213,7 +231,7 @@ async def chat_stream(body: ChatRequest) -> StreamingResponse:
                 f"education pages right now. I'll answer your question as soon "
                 f"as I'm done learning."
             )
-            event_queue.put({"event": "pre_answer", "data": text})
+            _put({"event": "pre_answer", "data": text})
 
         try:
             result = pipeline.run(
@@ -227,18 +245,28 @@ async def chat_stream(body: ChatRequest) -> StreamingResponse:
                 top_k_retrieve=body.top_k_retrieve,
                 top_k_rerank=body.top_k_rerank,
             )
-            event_queue.put({"event": "result", "data": result.to_dict()})
-        except Exception as exc:  # noqa: BLE001
+            _put({"event": "result", "data": result.to_dict()})
+        except _StreamCancelled:
+            # Client disconnected mid-stream; the OpenAI SDK closes the upstream
+            # HTTP connection when its streaming iterator is GC'd after we unwind.
+            pass
+        except Exception:  # noqa: BLE001
             logger.exception("Pipeline stream failed")
-            event_queue.put({"event": "error", "data": "An internal error occurred. Please try again."})
+            _put({"event": "error", "data": "An internal error occurred. Please try again."})
         finally:
-            event_queue.put(None)  # sentinel — stream is done
+            try:
+                event_queue.put(None, timeout=1.0)
+            except _queue.Full:
+                pass
 
     threading.Thread(target=run_pipeline, daemon=True).start()
 
     async def generate():
         try:
             while True:
+                if await request.is_disconnected():
+                    cancel_event.set()
+                    break
                 try:
                     item = event_queue.get_nowait()
                 except _queue.Empty:
@@ -252,6 +280,7 @@ async def chat_stream(body: ChatRequest) -> StreamingResponse:
                 data = json.dumps(item["data"], ensure_ascii=False)
                 yield f"event: {event_type}\ndata: {data}\n\n"
         finally:
+            cancel_event.set()
             yield "event: done\ndata: {}\n\n"
 
     return StreamingResponse(

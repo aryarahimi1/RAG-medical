@@ -24,7 +24,13 @@ import time
 from dataclasses import asdict, dataclass, field
 from typing import Callable, List, Optional
 
-from rag.drug_detect import DrugDetector, DrugMention, get_detector, missing_drugs
+from rag.drug_detect import (
+    DrugDetector,
+    DrugMention,
+    RedactionAuditFilter,
+    get_detector,
+    missing_drugs,
+)
 from rag.generate import (
     DeepSeekGenerator,
     GenerationError,
@@ -185,6 +191,7 @@ class RAGPipeline:
         top_k_rerank: Optional[int] = None,
     ) -> RAGResult:
         timing = StageTiming()
+        warnings_list: List[dict] = []
         do_ingest = self.auto_ingest if auto_ingest is None else auto_ingest
         k_retrieve = top_k_retrieve if top_k_retrieve is not None else self.top_k_retrieve
         k_rerank = top_k_rerank if top_k_rerank is not None else self.top_k_rerank
@@ -206,6 +213,18 @@ class RAGPipeline:
         thread_bundle = _thread_bundle_for_followups(
             self.redactor, history, redaction.redacted
         )
+
+        # ----- 1b. Audit redaction for drug-shaped spans -------------------
+        if redaction.entities:
+            try:
+                flags = RedactionAuditFilter.audit(
+                    redaction.original, redaction.entities, self.detector
+                )
+                for f in flags:
+                    warnings_list.append(asdict(f))
+                    logger.warning("Redaction audit: %s", f.warning)
+            except Exception:  # noqa: BLE001
+                logger.exception("Redaction audit failed; continuing")
 
         # ----- 2. Detect drug mentions ------------------------------------
         _status("Detecting drug mentions via RxNorm…")
@@ -288,6 +307,7 @@ class RAGPipeline:
             generation=generation,
             timing=timing,
             error=error,
+            warnings=warnings_list,
         )
 
     def _auto_ingest(

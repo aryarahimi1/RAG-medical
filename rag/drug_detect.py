@@ -436,7 +436,7 @@ class RedactionAuditFilter:
     @staticmethod
     def audit(
         original_text: str,
-        recognizer_results: list,
+        entities: List[dict],
         detector: "DrugDetector",
     ) -> List[RedactionFlag]:
         """Return a list of RedactionFlags for spans that may mask drug names.
@@ -444,22 +444,22 @@ class RedactionAuditFilter:
         Parameters
         ----------
         original_text:
-            The raw (un-redacted) query text, used to extract span tokens by
-            character offset.
-        recognizer_results:
-            List of Presidio RecognizerResult objects.  Each must expose
-            `.entity_type` (str), `.score` (float), `.start` (int), `.end` (int).
-            If the result also carries a `.text` attribute it is used directly;
-            otherwise the token is sliced from `original_text`.
+            The raw (un-redacted) query text. Retained for context/logging;
+            token text is read directly from each entity dict.
+        entities:
+            List of entity dicts as produced by `RedactionResult.entities`.
+            Each must carry keys `entity_type` (str), `score` (float),
+            `start` (int), `end` (int), and `text` (str). Works for both the
+            Presidio and regex redaction paths.
         detector:
             A DrugDetector instance whose `_lookup` method is used for RxNorm
             verification.
         """
         flags: List[RedactionFlag] = []
 
-        for rr in recognizer_results:
-            entity_type: str = getattr(rr, "entity_type", "") or ""
-            score: float = float(getattr(rr, "score", 0.0))
+        for e in entities:
+            entity_type: str = e.get("entity_type", "") or ""
+            score: float = float(e.get("score", 0.0))
 
             # Gate 2: only audit entity types that shadow drug names.
             if entity_type not in RedactionAuditFilter._AUDIT_ENTITIES:
@@ -469,14 +469,7 @@ class RedactionAuditFilter:
             if score >= RedactionAuditFilter._CONF_GATE:
                 continue
 
-            # Extract token by offset if .text is not populated.
-            token: str = getattr(rr, "text", None) or ""
-            if not token:
-                start = int(getattr(rr, "start", 0))
-                end = int(getattr(rr, "end", 0))
-                token = original_text[start:end]
-
-            token = token.strip()
+            token: str = (e.get("text") or "").strip()
 
             # Gate 1: length filter.
             if not (RedactionAuditFilter._MIN_TOKEN_LEN <= len(token) <= RedactionAuditFilter._MAX_TOKEN_LEN):

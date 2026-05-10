@@ -30,9 +30,9 @@ user question
    │                      (threading lock avoids duplicate concurrent ingests)
    ▼
 ┌─────────────────────┐
-│ 4. Embed (local)    │  sentence-transformers/all-MiniLM-L6-v2
-└─────────────────────┘
-   │ 384-d vector
+│ 4. Embed (local)    │  ncbi/MedCPT-Query-Encoder (queries)
+└─────────────────────┘  ncbi/MedCPT-Article-Encoder (documents)
+   │ 768-d vector
    ▼
 ┌─────────────────────┐
 │ 5. Hybrid search    │  Chroma dense + BM25 fusion, top-k
@@ -40,7 +40,7 @@ user question
    │ candidate chunks
    ▼
 ┌─────────────────────┐
-│ 6. Cross-encoder    │  cross-encoder/ms-marco-MiniLM-L-6-v2, top-k
+│ 6. Cross-encoder    │  cross-encoder/ms-marco-MiniLM-L-12-v2, top-k
 │    rerank           │
 └─────────────────────┘
    │ best chunks + metadata

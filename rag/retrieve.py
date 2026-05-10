@@ -1,10 +1,12 @@
 """Chroma-backed vector store wrapper.
 
-Embeddings come from `BAAI/bge-base-en-v1.5`. The model is loaded once and
-reused; on the first call it downloads ~400 MB from Hugging Face to
-`~/.cache/huggingface`. BGE uses asymmetric encoding: queries get an
-instruction prefix ("Represent this sentence for searching relevant passages:")
-while documents are embedded plain — this is handled automatically.
+Embeddings come from MedCPT, an asymmetric pair from NCBI: queries are encoded
+with `ncbi/MedCPT-Query-Encoder` and documents with `ncbi/MedCPT-Article-Encoder`,
+both producing 768-d vectors. The pair was contrastively trained on 255M
+PubMed query-article pairs, which makes it well-suited for clinical and
+regulatory text — it understands tokens like `CYP3A4`, pharmacokinetic
+terminology, and drug-class relationships that general-purpose encoders treat
+as opaque strings. Models are loaded once and reused.
 
 Collection metadata stores only lightweight fields; full chunk text lives in
 Chroma's document store so we can show it verbatim in the UI.
@@ -95,6 +97,9 @@ class VectorStore:
                 logger.warning("BM25 pickle unreadable (%s); will rebuild on first search", exc)
                 self._bm25 = None
 
+        # Cache for indexed_drugs(); None = not yet computed, set() = computed empty.
+        self._indexed_drugs_cache: Optional[Set[str]] = None
+
     @property
     def collection(self):
         return self._collection
@@ -133,6 +138,7 @@ class VectorStore:
                 embeddings=batch_emb,
             )
         self._rebuild_and_persist_bm25()
+        self._indexed_drugs_cache = None
 
     # ------------------------------------------------------------------
     # BM25 helpers
@@ -468,16 +474,20 @@ class VectorStore:
     def indexed_drugs(self) -> set:
         """Return the set of drug names currently represented in the store.
 
-        Cheap-ish: fetches metadatas only (no embeddings, no documents).
+        Cached; invalidated on ``add()`` and ``reset()``.
         """
+        if self._indexed_drugs_cache is not None:
+            return set(self._indexed_drugs_cache)
         if self.count() == 0:
+            self._indexed_drugs_cache = set()
             return set()
         peek = self._collection.get(include=["metadatas"])
-        drugs = set()
+        drugs: Set[str] = set()
         for m in peek.get("metadatas", []) or []:
             if m and m.get("drug_name"):
                 drugs.add(str(m["drug_name"]).lower())
-        return drugs
+        self._indexed_drugs_cache = drugs
+        return set(drugs)
 
     def has_drug(self, drug_name: str) -> bool:
         """True if at least one chunk's metadata.drug_name matches."""
@@ -517,6 +527,7 @@ class VectorStore:
             name=self.collection_name,
             metadata={"hnsw:space": "cosine"},
         )
+        self._indexed_drugs_cache = None
         self._bm25 = None
         self._bm25_ids = []
         self._bm25_docs = []
