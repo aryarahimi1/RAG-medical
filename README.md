@@ -204,12 +204,27 @@ Open <http://localhost:5173>. Set `CORS_ORIGINS` in `.env` if you use another or
 
 ---
 
+## Evaluation
+
+A small regression harness lives in `tests/eval/`. Golden Q&A (18 questions across PK, interaction, indication, warning, refusal, multi-drug, and recall categories) drives the live `RAGPipeline` with `auto_ingest=False` so the eval is read-only against the corpus. For each question it scores five mechanical checks — RxNorm drug detection, per-drug retrieval coverage in the reranked set, inline `[n]` citation presence, refusal-phrase presence on rows where the corpus shouldn't answer, and required-phrase presence — and emits a Markdown report with pass rate, per-category breakdown, stage latency (median / p95), and failure rows.
+
+```bash
+python -m scripts.eval                          # full eval (auto-fallbacks to no-gen if OPENROUTER_API_KEY unset)
+python -m scripts.eval --no-generation          # retrieval + rerank only, no API key needed
+python -m scripts.eval --filter pharmacokinetics
+python -m scripts.eval --output tests/eval/last_run.md
+```
+
+Latest run on the full default corpus (5051 chunks across 48 drugs): **16/18 retrieval-only, 13/18 with generation** (`tests/eval/last_run.md`, `last_run_retrieval_only.md`). The 5 with-generation failures cluster into three real signals: (1) the cross-encoder rerank can drop multi-drug coverage in DDI queries — `_ensure_per_drug_coverage` is enforced at retrieval level, not at rerank; (2) one missing inline citation on a PK answer suggests stricter citation enforcement in the system prompt; (3) two "phrase brittleness" cases where the model used clinical vocabulary (`MDD`, `LDL-C`) while the eval expected lay vocabulary (`depression`, `cholesterol`) — an eval-design issue, not a pipeline issue. All 3/3 refusal cases pass; drug detection is 18/18. The eval is not a substitute for clinical review — it signals retrieval coverage, citation discipline, and refusal behavior, not factual correctness.
+
+---
+
 ## Known limitations (worth discussing live)
 
 - **No auth / rate limits** on the API — add before any real deployment.
 - **No reranking by source type** (DailyMed vs MedlinePlus).
 - **Negation in retrieval** remains a hard problem; cross-encoder helps but does not fix it.
-- **No evaluation harness** — would add golden Q&A + regression checks.
+- **Evaluation** covers retrieval coverage, citation presence, and refusal correctness; it does not yet evaluate factual answer correctness (would require clinical review or LLM-as-judge).
 - **DrugBank** requires manual download into `data/raw/`.
 
 ---

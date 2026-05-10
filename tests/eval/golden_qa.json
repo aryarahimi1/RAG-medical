@@ -1,0 +1,222 @@
+{
+  "version": 1,
+  "notes": "Golden Q&A for medication-RAG regression. Questions are scoped to drugs in scripts/ingest.py DEFAULT_DRUGS so auto-ingest never needs to fire during eval. must_contain_phrases is intentionally conservative — only phrases almost certain to appear in a correct, on-corpus answer. must_have_citations is false for refusal rows so we do not penalize the model for refusing without fabricating citations.",
+  "questions": [
+    {
+      "id": "pk-ibuprofen-half-life",
+      "question": "How long does ibuprofen stay in the body?",
+      "category": "pharmacokinetics",
+      "expected": {
+        "must_detect_drugs": ["ibuprofen"],
+        "must_have_chunks_for_drugs": ["ibuprofen"],
+        "must_have_citations": true,
+        "must_be_idk": false,
+        "must_contain_phrases": ["half-life"]
+      }
+    },
+    {
+      "id": "pk-warfarin-half-life",
+      "question": "What is the half-life of warfarin?",
+      "category": "pharmacokinetics",
+      "expected": {
+        "must_detect_drugs": ["warfarin"],
+        "must_have_chunks_for_drugs": ["warfarin"],
+        "must_have_citations": true,
+        "must_be_idk": false,
+        "must_contain_phrases": ["half-life"]
+      }
+    },
+    {
+      "id": "pk-levothyroxine-duration",
+      "question": "How long does levothyroxine stay active in the body?",
+      "category": "pharmacokinetics",
+      "expected": {
+        "must_detect_drugs": ["levothyroxine"],
+        "must_have_chunks_for_drugs": ["levothyroxine"],
+        "must_have_citations": true,
+        "must_be_idk": false,
+        "must_contain_phrases": ["half-life"]
+      }
+    },
+    {
+      "id": "ddi-ibuprofen-lisinopril",
+      "question": "Can I take ibuprofen with lisinopril?",
+      "category": "interaction",
+      "expected": {
+        "must_detect_drugs": ["ibuprofen", "lisinopril"],
+        "must_have_chunks_for_drugs": ["ibuprofen", "lisinopril"],
+        "must_have_citations": true,
+        "must_be_idk": false,
+        "must_contain_phrases": []
+      }
+    },
+    {
+      "id": "ddi-warfarin-aspirin",
+      "question": "Is it safe to take warfarin with aspirin?",
+      "category": "interaction",
+      "expected": {
+        "must_detect_drugs": ["warfarin", "aspirin"],
+        "must_have_chunks_for_drugs": ["warfarin", "aspirin"],
+        "must_have_citations": true,
+        "must_be_idk": false,
+        "must_contain_phrases": ["bleeding"]
+      }
+    },
+    {
+      "id": "ddi-warfarin-amoxicillin",
+      "question": "Can I take warfarin with amoxicillin?",
+      "category": "interaction",
+      "expected": {
+        "must_detect_drugs": ["warfarin", "amoxicillin"],
+        "must_have_chunks_for_drugs": ["warfarin", "amoxicillin"],
+        "must_have_citations": true,
+        "must_be_idk": false,
+        "must_contain_phrases": []
+      }
+    },
+    {
+      "id": "ddi-metformin-ciprofloxacin",
+      "question": "Is metformin safe with ciprofloxacin?",
+      "category": "interaction",
+      "expected": {
+        "must_detect_drugs": ["metformin", "ciprofloxacin"],
+        "must_have_chunks_for_drugs": ["metformin", "ciprofloxacin"],
+        "must_have_citations": true,
+        "must_be_idk": false,
+        "must_contain_phrases": []
+      }
+    },
+    {
+      "id": "indication-metformin",
+      "question": "What is metformin used for?",
+      "category": "indication",
+      "expected": {
+        "must_detect_drugs": ["metformin"],
+        "must_have_chunks_for_drugs": ["metformin"],
+        "must_have_citations": true,
+        "must_be_idk": false,
+        "must_contain_phrases": ["diabetes"]
+      }
+    },
+    {
+      "id": "indication-atorvastatin",
+      "question": "What is atorvastatin used for?",
+      "category": "indication",
+      "expected": {
+        "must_detect_drugs": ["atorvastatin"],
+        "must_have_chunks_for_drugs": ["atorvastatin"],
+        "must_have_citations": true,
+        "must_be_idk": false,
+        "must_contain_phrases": ["cholesterol"]
+      }
+    },
+    {
+      "id": "indication-sertraline",
+      "question": "What is sertraline used for?",
+      "category": "indication",
+      "expected": {
+        "must_detect_drugs": ["sertraline"],
+        "must_have_chunks_for_drugs": ["sertraline"],
+        "must_have_citations": true,
+        "must_be_idk": false,
+        "must_contain_phrases": ["depression"]
+      }
+    },
+    {
+      "id": "warning-prednisone",
+      "question": "What are the side effects of prednisone?",
+      "category": "warning",
+      "expected": {
+        "must_detect_drugs": ["prednisone"],
+        "must_have_chunks_for_drugs": ["prednisone"],
+        "must_have_citations": true,
+        "must_be_idk": false,
+        "must_contain_phrases": []
+      }
+    },
+    {
+      "id": "warning-gabapentin",
+      "question": "What should I watch out for when taking gabapentin?",
+      "category": "warning",
+      "expected": {
+        "must_detect_drugs": ["gabapentin"],
+        "must_have_chunks_for_drugs": ["gabapentin"],
+        "must_have_citations": true,
+        "must_be_idk": false,
+        "must_contain_phrases": []
+      }
+    },
+    {
+      "id": "warning-omeprazole",
+      "question": "What are the warnings for omeprazole?",
+      "category": "warning",
+      "expected": {
+        "must_detect_drugs": ["omeprazole"],
+        "must_have_chunks_for_drugs": ["omeprazole"],
+        "must_have_citations": true,
+        "must_be_idk": false,
+        "must_contain_phrases": []
+      }
+    },
+    {
+      "id": "refusal-price",
+      "question": "What is the price of ibuprofen at CVS?",
+      "category": "refusal",
+      "expected": {
+        "must_detect_drugs": ["ibuprofen"],
+        "must_have_chunks_for_drugs": [],
+        "must_have_citations": false,
+        "must_be_idk": true,
+        "must_contain_phrases": []
+      }
+    },
+    {
+      "id": "refusal-veterinary",
+      "question": "Can I give my dog acetaminophen?",
+      "category": "refusal",
+      "expected": {
+        "must_detect_drugs": ["acetaminophen"],
+        "must_have_chunks_for_drugs": [],
+        "must_have_citations": false,
+        "must_be_idk": true,
+        "must_contain_phrases": []
+      }
+    },
+    {
+      "id": "refusal-manufacturer",
+      "question": "Which company manufactures the cheapest generic ibuprofen in 2026?",
+      "category": "refusal",
+      "expected": {
+        "must_detect_drugs": ["ibuprofen"],
+        "must_have_chunks_for_drugs": [],
+        "must_have_citations": false,
+        "must_be_idk": true,
+        "must_contain_phrases": []
+      }
+    },
+    {
+      "id": "multi-ibuprofen-naproxen",
+      "question": "Compare ibuprofen and naproxen for arthritis pain.",
+      "category": "multi-drug",
+      "expected": {
+        "must_detect_drugs": ["ibuprofen", "naproxen"],
+        "must_have_chunks_for_drugs": ["ibuprofen", "naproxen"],
+        "must_have_citations": true,
+        "must_be_idk": false,
+        "must_contain_phrases": []
+      }
+    },
+    {
+      "id": "recall-ranitidine",
+      "question": "Has there been any FDA recall of ranitidine recently?",
+      "category": "recall",
+      "expected": {
+        "must_detect_drugs": ["ranitidine"],
+        "must_have_chunks_for_drugs": ["ranitidine"],
+        "must_have_citations": true,
+        "must_be_idk": false,
+        "must_contain_phrases": []
+      }
+    }
+  ]
+}
