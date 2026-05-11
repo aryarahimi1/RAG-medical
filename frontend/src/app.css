@@ -1,228 +1,123 @@
 /* Fonts load from <link> in app.html (parallel fetch, no @import waterfall). */
 
 :root {
-	/* Clinical / institutional: white surfaces, measured cool blues */
-	--bg-deep: #fafafa;
-	--bg-panel: #ffffff;
-	--bg-elevated: #ffffff;
-	--surface-muted: #f8fafc;
-	--border: #e2e8f0;
-	--border-subtle: rgba(30, 58, 138, 0.08);
-	--accent: #2563eb;
-	--accent-hover: #1d4ed8;
-	--accent-dim: rgba(37, 99, 235, 0.08);
-	--accent-ring: rgba(37, 99, 235, 0.22);
-	--text: #0f172a;
-	--text-muted: #64748b;
-	--text-heading: #1e293b;
-	--danger: #b91c1c;
-	--danger-bg: rgba(254, 226, 226, 0.85);
-	--success: #15803d;
-	--warning: #b45309;
+	/* Monograph / reference-book palette. Cool ink on paper. */
+	--paper: oklch(0.985 0.004 80);
+	--paper-sunk: oklch(0.965 0.004 80);
+	--paper-elevated: oklch(0.995 0.003 80);
+	--ink: oklch(0.18 0.012 260);
+	--ink-soft: oklch(0.32 0.01 260);
+	--ink-muted: oklch(0.48 0.008 260);
+	--ink-faint: oklch(0.6 0.007 260);
+	--rule: oklch(0.88 0.006 260);
+	--rule-strong: oklch(0.74 0.008 260);
 
-	/* Chat shell — consumed by +page.svelte (light defaults) */
-	--shell-bg: #fafafa;
-	--shell-fg: #0f172a;
-	--rail-bg: #ffffff;
-	--rail-border: #e2e8f0;
-	--text-secondary: #475569;
-	--surface-elevated: #ffffff;
-	--eyebrow: #2563eb;
-	--brand-mark-bg: #1e40af;
-	--brand-mark-border: #1e3a8a;
-	--brand-mark-fg: #ffffff;
-	--btn-primary: #2563eb;
-	--btn-primary-hover: #1d4ed8;
-	--btn-ghost-bg: #ffffff;
-	--btn-ghost-border: #e2e8f0;
-	--btn-ghost-fg: #334155;
-	--chip-bg: #eff6ff;
-	--chip-border: #dbeafe;
-	--chip-fg: #1e40af;
-	--tab-bg: #f8fafc;
-	--tab-active-bg: #eff6ff;
-	--tab-active-border: #93c5fd;
-	--tab-fg: #334155;
-	--spinner-ring: rgba(37, 99, 235, 0.25);
-	--spinner-cap: #2563eb;
-	--card-bg: #ffffff;
-	--card-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.04);
-	--shadow-popover: 0 10px 40px rgba(15, 23, 42, 0.12);
-	--summary-color: #1e293b;
-	--metric-cell-bg: #f8fafc;
-	--msg-user-bg: #eff6ff;
-	--msg-user-border: #bfdbfe;
-	--msg-user-avatar-bg: #dbeafe;
-	--msg-user-avatar-fg: #1e40af;
-	--msg-assistant-bg: #ffffff;
-	--msg-assistant-border: #e2e8f0;
-	--pre-stream-border: rgba(251, 191, 36, 0.32);
-	--link-cite: #2563eb;
-	--md-heading: #1e40af;
-	--empty-orb-bg: #ffffff;
-	--empty-orb-border: #e2e8f0;
-	--empty-body: #475569;
-	--sample-card-bg: #ffffff;
-	--sample-card-fg: #334155;
-	--sample-card-border: #e2e8f0;
-	--input-bg: #f8fafc;
-	--input-fg: #0f172a;
-	--placeholder: #94a3b8;
-	--composer-drawer-summary-bg: #ffffff;
-	--composer-drawer-summary-border: #e2e8f0;
-	--composer-drawer-open-border: #93c5fd;
-	--pre-bg: #f8fafc;
-	--pre-fg: #334155;
-	--pre-border: #e2e8f0;
-	--data-pill-bg: #f8fafc;
-	--ingest-bg: #f8fafc;
-	--timing-cell-bg: #f8fafc;
-	--scrollbar-thumb: rgba(37, 99, 235, 0.28);
-	--scrollbar-thumb-hover: rgba(37, 99, 235, 0.45);
-	--mobile-overlay: rgba(15, 23, 42, 0.35);
-	--error-banner-bg: #fef2f2;
-	--error-banner-border: #fecaca;
-	--error-banner-fg: #991b1b;
+	/* The one committed accent — deep oxblood. Used on ℞, links, citations, focus rings. Nowhere else. */
+	--accent: oklch(0.42 0.13 22);
+	--accent-hover: oklch(0.36 0.14 22);
+	--accent-wash: oklch(0.42 0.13 22 / 0.08);
+	--accent-ring: oklch(0.42 0.13 22 / 0.32);
 
-	/* FDA recall chips (assistant message) */
-	--recall-strip-bg: #f8fafc;
-	--recall-strip-border: #e2e8f0;
-	--recall-class1-bg: rgba(254, 226, 226, 0.92);
-	--recall-class1-border: #f87171;
-	--recall-class1-fg: #991b1b;
-	--recall-class2-bg: rgba(254, 243, 199, 0.92);
-	--recall-class2-border: #f59e0b;
-	--recall-class2-fg: #92400e;
-	--recall-class3-bg: rgba(241, 245, 249, 0.95);
-	--recall-class3-border: #94a3b8;
-	--recall-class3-fg: #475569;
-	--recall-unknown-bg: rgba(248, 250, 252, 0.95);
-	--recall-unknown-border: #cbd5e1;
-	--recall-unknown-fg: #475569;
+	--danger: oklch(0.48 0.16 22);
+	--danger-wash: oklch(0.94 0.04 22);
+	--warning: oklch(0.52 0.13 70);
+	--warning-wash: oklch(0.95 0.04 80);
+	--success: oklch(0.48 0.1 150);
 
-	/* spacing scale */
-	--space-xs: 0.25rem;
-	--space-sm: 0.5rem;
-	--space-md: 0.75rem;
-	--space-lg: 1rem;
-	--space-xl: 1.5rem;
-	--space-2xl: 2rem;
+	/* Recall severity — earned colour, not a chip dressing */
+	--recall-1-fg: oklch(0.38 0.15 22);
+	--recall-1-bg: oklch(0.95 0.03 22);
+	--recall-1-rule: oklch(0.58 0.13 22);
+	--recall-2-fg: oklch(0.4 0.12 65);
+	--recall-2-bg: oklch(0.95 0.04 80);
+	--recall-2-rule: oklch(0.62 0.12 70);
+	--recall-3-fg: oklch(0.4 0.008 260);
+	--recall-3-bg: oklch(0.94 0.005 260);
+	--recall-3-rule: oklch(0.7 0.008 260);
 
-	/* border-radius scale */
-	--radius-xs: 4px;
-	--radius-sm: 6px;
-	--radius-md: 10px;
-	--radius-lg: 14px;
-	--radius-xl: 20px;
-	--radius-full: 9999px;
+	/* Type scale — fixed rem, no fluid clamps */
+	--text-xs: 0.75rem;
+	--text-sm: 0.84rem;
+	--text-base: 0.95rem;
+	--text-md: 1.05rem;
+	--text-lg: 1.35rem;
+	--text-xl: 1.75rem;
+	--text-2xl: 2.25rem;
 
-	font-family:
-		'DM Sans',
-		system-ui,
-		-apple-system,
-		'Segoe UI',
-		sans-serif;
-	color: var(--text);
-	background: var(--bg-deep);
+	/* Spacing — varied, not regular */
+	--space-1: 0.25rem;
+	--space-2: 0.5rem;
+	--space-3: 0.75rem;
+	--space-4: 1rem;
+	--space-5: 1.5rem;
+	--space-6: 2rem;
+	--space-7: 3rem;
+	--space-8: 4rem;
+
+	/* Radii — architectural, not bubbly. Most things are square. */
+	--radius-1: 2px;
+	--radius-2: 4px;
+	--radius-3: 6px;
+
+	/* Layout tokens — single source for sidebar width, prose measure, column widths */
+	--rail-w: 17rem;
+	--rail-w-collapsed: 4rem;
+	--col-main: 50rem;
+	--col-main-wide: 56rem;
+	--col-main-xwide: 62rem;
+	--col-transcript: 44rem;
+	--col-transcript-wide: 48rem;
+	--measure-prose: 68ch;
+	--measure-narrow: 56ch;
+	--measure-display: 22ch;
+
+	/* Minimum interactive target — WCAG 2.5.5 AA / iOS HIG */
+	--tap: 44px;
+
+	--font-ui:
+		'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+	--font-prose: 'Newsreader', Charter, 'Source Serif Pro', Georgia, 'Times New Roman', serif;
+	--font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+	font-family: var(--font-ui);
+	color: var(--ink);
+	background: var(--paper);
+	font-size: 16px;
+	font-feature-settings: 'ss01', 'cv11';
 }
 
 html[data-theme='dark'] {
 	color-scheme: dark;
-	--bg-deep: #0b1120;
-	--bg-panel: #151f32;
-	--bg-elevated: #1a2438;
-	--surface-muted: #1e293b;
-	--border: #334155;
-	--border-subtle: rgba(148, 163, 184, 0.15);
-	--accent: #60a5fa;
-	--accent-hover: #93c5fd;
-	--accent-dim: rgba(96, 165, 250, 0.15);
-	--accent-ring: rgba(96, 165, 250, 0.35);
-	--text: #f1f5f9;
-	--text-muted: #94a3b8;
-	--text-heading: #e2e8f0;
-	--danger: #f87171;
-	--danger-bg: rgba(127, 29, 29, 0.45);
-	--success: #4ade80;
-	--warning: #fbbf24;
+	--paper: oklch(0.18 0.008 260);
+	--paper-sunk: oklch(0.15 0.008 260);
+	--paper-elevated: oklch(0.21 0.008 260);
+	--ink: oklch(0.94 0.005 80);
+	--ink-soft: oklch(0.84 0.005 80);
+	--ink-muted: oklch(0.72 0.006 260);
+	--ink-faint: oklch(0.6 0.006 260);
+	--rule: oklch(0.32 0.008 260);
+	--rule-strong: oklch(0.46 0.008 260);
 
-	--shell-bg: #0b1120;
-	--shell-fg: #f1f5f9;
-	--rail-bg: #111827;
-	--rail-border: #334155;
-	--text-secondary: #cbd5e1;
-	--surface-elevated: #1e293b;
-	--eyebrow: #93c5fd;
-	--brand-mark-bg: #2563eb;
-	--brand-mark-border: #1d4ed8;
-	--brand-mark-fg: #ffffff;
-	--btn-primary: #3b82f6;
-	--btn-primary-hover: #60a5fa;
-	--btn-ghost-bg: #1e293b;
-	--btn-ghost-border: #475569;
-	--btn-ghost-fg: #e2e8f0;
-	--chip-bg: rgba(37, 99, 235, 0.2);
-	--chip-border: #3b82f6;
-	--chip-fg: #bfdbfe;
-	--tab-bg: #1e293b;
-	--tab-active-bg: rgba(37, 99, 235, 0.28);
-	--tab-active-border: #60a5fa;
-	--tab-fg: #e2e8f0;
-	--spinner-ring: rgba(147, 197, 253, 0.35);
-	--spinner-cap: #93c5fd;
-	--card-bg: #1e293b;
-	--card-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.28);
-	--shadow-popover: 0 10px 40px rgba(0, 0, 0, 0.5);
-	--summary-color: #e2e8f0;
-	--metric-cell-bg: #0f172a;
-	--msg-user-bg: rgba(30, 58, 138, 0.45);
-	--msg-user-border: #3b82f6;
-	--msg-user-avatar-bg: rgba(59, 130, 246, 0.28);
-	--msg-user-avatar-fg: #bfdbfe;
-	--msg-assistant-bg: #1a2438;
-	--msg-assistant-border: #334155;
-	--pre-stream-border: rgba(251, 191, 36, 0.4);
-	--link-cite: #60a5fa;
-	--md-heading: #93c5fd;
-	--empty-orb-bg: #1e293b;
-	--empty-orb-border: #475569;
-	--empty-body: #cbd5e1;
-	--sample-card-bg: #1e293b;
-	--sample-card-fg: #e2e8f0;
-	--sample-card-border: #475569;
-	--input-bg: #111827;
-	--input-fg: #f1f5f9;
-	--placeholder: #64748b;
-	--composer-drawer-summary-bg: #1e293b;
-	--composer-drawer-summary-border: #475569;
-	--composer-drawer-open-border: #60a5fa;
-	--pre-bg: #0f172a;
-	--pre-fg: #e2e8f0;
-	--pre-border: #334155;
-	--data-pill-bg: #0f172a;
-	--ingest-bg: #0f172a;
-	--timing-cell-bg: #0f172a;
-	--scrollbar-thumb: rgba(147, 197, 253, 0.35);
-	--scrollbar-thumb-hover: rgba(147, 197, 253, 0.55);
-	--mobile-overlay: rgba(0, 0, 0, 0.55);
-	--error-banner-bg: rgba(127, 29, 29, 0.45);
-	--error-banner-border: #f87171;
-	--error-banner-fg: #fecaca;
+	--accent: oklch(0.7 0.14 22);
+	--accent-hover: oklch(0.78 0.14 22);
+	--accent-wash: oklch(0.7 0.14 22 / 0.14);
+	--accent-ring: oklch(0.7 0.14 22 / 0.42);
 
-	--recall-strip-bg: #0f172a;
-	--recall-strip-border: #334155;
-	--recall-class1-bg: rgba(127, 29, 29, 0.55);
-	--recall-class1-border: #f87171;
-	--recall-class1-fg: #fecaca;
-	--recall-class2-bg: rgba(120, 53, 15, 0.45);
-	--recall-class2-border: #fbbf24;
-	--recall-class2-fg: #fde68a;
-	--recall-class3-bg: rgba(30, 41, 59, 0.85);
-	--recall-class3-border: #64748b;
-	--recall-class3-fg: #cbd5e1;
-	--recall-unknown-bg: rgba(30, 41, 59, 0.75);
-	--recall-unknown-border: #475569;
-	--recall-unknown-fg: #94a3b8;
+	--danger: oklch(0.72 0.16 22);
+	--danger-wash: oklch(0.32 0.1 22 / 0.45);
+	--warning: oklch(0.78 0.13 70);
+	--warning-wash: oklch(0.3 0.09 70 / 0.4);
+	--success: oklch(0.74 0.13 150);
+
+	--recall-1-fg: oklch(0.84 0.12 22);
+	--recall-1-bg: oklch(0.28 0.09 22 / 0.55);
+	--recall-1-rule: oklch(0.62 0.16 22);
+	--recall-2-fg: oklch(0.86 0.1 75);
+	--recall-2-bg: oklch(0.3 0.07 70 / 0.45);
+	--recall-2-rule: oklch(0.7 0.13 70);
+	--recall-3-fg: oklch(0.78 0.008 260);
+	--recall-3-bg: oklch(0.24 0.008 260);
+	--recall-3-rule: oklch(0.45 0.008 260);
 }
 
 *,
@@ -232,66 +127,136 @@ html[data-theme='dark'] {
 }
 
 html {
+	height: 100%;
 	min-height: 100dvh;
 }
 
 body {
 	margin: 0;
 	min-height: 100dvh;
-	overflow-x: hidden;
-	overflow-y: auto;
-	background: var(--bg-deep);
-	position: relative;
-}
-
-body {
-	line-height: 1.55;
+	height: 100%;
+	/* Single scroll regions live inside the app shell (.thread, rails, panels) — not on body */
+	overflow: hidden;
+	overflow-x: clip;
+	background: var(--paper);
+	color: var(--ink);
+	line-height: 1.6;
 	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
 	font-weight: 400;
+	text-rendering: optimizeLegibility;
 }
 
 h1,
 h2,
 h3,
 h4 {
-	font-weight: 700;
+	margin-top: 0;
+	font-weight: 600;
+	letter-spacing: -0.012em;
+	color: var(--ink);
 }
 
 a {
 	color: var(--accent);
-	text-decoration: none;
-	transition:
-		color 0.15s,
-		background 0.15s;
+	text-decoration: underline;
+	text-decoration-color: color-mix(in oklch, var(--accent) 35%, transparent);
+	text-underline-offset: 0.18em;
+	text-decoration-thickness: 1px;
+	transition: text-decoration-color 0.16s ease, color 0.16s ease;
 }
 a:hover {
-	text-decoration: underline;
 	color: var(--accent-hover);
+	text-decoration-color: var(--accent);
 }
 
 code,
-pre {
-	font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-	font-size: 0.82rem;
+pre,
+.mono {
+	font-family: var(--font-mono);
+	font-size: 0.84em;
 }
 
-/* scrollbar styling */
+::selection {
+	background: var(--accent-wash);
+	color: var(--ink);
+}
+
+/* Hairline scrollbar — visible only on hover */
 ::-webkit-scrollbar {
-	width: 5px;
-	height: 5px;
+	width: 4px;
+	height: 4px;
 }
 ::-webkit-scrollbar-track {
 	background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-	background: var(--scrollbar-thumb);
-	border-radius: var(--radius-full);
+	background: transparent;
+	border-radius: 0;
 	transition: background 0.2s;
 }
-::-webkit-scrollbar-thumb:hover {
-	background: var(--scrollbar-thumb-hover);
+*:hover::-webkit-scrollbar-thumb {
+	background: var(--rule-strong);
 }
 * {
 	scrollbar-width: thin;
-	scrollbar-color: var(--scrollbar-thumb) transparent;
+	scrollbar-color: var(--rule) transparent;
+}
+
+button,
+input,
+textarea,
+select {
+	font: inherit;
+	color: inherit;
+}
+
+button {
+	border: 0;
+	background: none;
+	cursor: pointer;
+	color: inherit;
+}
+
+button:disabled {
+	cursor: not-allowed;
+}
+
+:focus-visible {
+	outline: 2px solid var(--accent-ring);
+	outline-offset: 2px;
+	border-radius: var(--radius-2);
+}
+
+/* Global motion guard — covers every animation/transition by default.
+ * Specific motion (e.g. dot-pulse, sent-flash, smooth scroll) inherits. */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}
+
+/* Skip link — first focusable on every viewport */
+.skip-link {
+	position: absolute;
+	left: var(--space-3);
+	top: var(--space-3);
+	z-index: 100;
+	padding: var(--space-2) var(--space-3);
+	background: var(--ink);
+	color: var(--paper);
+	font-size: var(--text-sm);
+	font-weight: 500;
+	border-radius: var(--radius-2);
+	transform: translateY(calc(-100% - var(--space-3)));
+	transition: transform 0.16s ease;
+}
+.skip-link:focus {
+	transform: translateY(0);
+	text-decoration: none;
 }
