@@ -206,16 +206,44 @@ Open <http://localhost:5173>. Set `CORS_ORIGINS` in `.env` if you use another or
 
 ## Evaluation
 
-A small regression harness lives in `tests/eval/`. Golden Q&A (18 questions across PK, interaction, indication, warning, refusal, multi-drug, and recall categories) drives the live `RAGPipeline` with `auto_ingest=False` so the eval is read-only against the corpus. For each question it scores five mechanical checks — RxNorm drug detection, per-drug retrieval coverage in the reranked set, inline `[n]` citation presence, refusal-phrase presence on rows where the corpus shouldn't answer, and required-phrase presence — and emits a Markdown report with pass rate, per-category breakdown, stage latency (median / p95), and failure rows.
+A small regression harness lives in `tests/eval/`. Golden Q&A (18 questions across PK, interaction, indication, warning, refusal, multi-drug, and recall categories) drives the live `RAGPipeline` with `auto_ingest=False` so the eval is read-only against the corpus. For each question it scores six checks — RxNorm drug detection, per-drug retrieval coverage in the reranked set, inline `[n]` citation presence, refusal-phrase presence on rows where the corpus shouldn't answer, required-phrase presence, and **faithfulness via an LLM-as-judge agent** — and emits a Markdown report with pass rate, per-category breakdown, stage latency (median / p95), and failure rows.
 
 ```bash
-python -m scripts.eval                          # full eval (auto-fallbacks to no-gen if OPENROUTER_API_KEY unset)
+python -m scripts.eval                          # full eval, including judge agent
 python -m scripts.eval --no-generation          # retrieval + rerank only, no API key needed
+python -m scripts.eval --no-judge               # skip the faithfulness agent (save API calls)
+python -m scripts.eval --judge-model openai/gpt-5-mini
 python -m scripts.eval --filter pharmacokinetics
 python -m scripts.eval --output tests/eval/last_run.md
 ```
 
-Latest run on the full default corpus (5051 chunks across 48 drugs): **16/18 retrieval-only, 13/18 with generation** (`tests/eval/last_run.md`, `last_run_retrieval_only.md`). The 5 with-generation failures cluster into three real signals: (1) the cross-encoder rerank can drop multi-drug coverage in DDI queries — `_ensure_per_drug_coverage` is enforced at retrieval level, not at rerank; (2) one missing inline citation on a PK answer suggests stricter citation enforcement in the system prompt; (3) two "phrase brittleness" cases where the model used clinical vocabulary (`MDD`, `LDL-C`) while the eval expected lay vocabulary (`depression`, `cholesterol`) — an eval-design issue, not a pipeline issue. All 3/3 refusal cases pass; drug detection is 18/18. The eval is not a substitute for clinical review — it signals retrieval coverage, citation discipline, and refusal behavior, not factual correctness.
+Latest run on the full default corpus (5051 chunks across 48 drugs): **16/18 retrieval-only, 13/18 with generation** (`tests/eval/last_run.md`, `last_run_retrieval_only.md`). The 5 with-generation failures cluster into three real signals: (1) the cross-encoder rerank can drop multi-drug coverage in DDI queries — `_ensure_per_drug_coverage` is enforced at retrieval level, not at rerank; (2) one missing inline citation on a PK answer suggests stricter citation enforcement in the system prompt; (3) two "phrase brittleness" cases where the model used clinical vocabulary (`MDD`, `LDL-C`) while the eval expected lay vocabulary (`depression`, `cholesterol`) — an eval-design issue, not a pipeline issue. All 3/3 refusal cases pass; drug detection is 18/18. The eval is not a substitute for clinical review — it signals retrieval coverage, citation discipline, refusal behavior, and (with the judge) answer faithfulness, not absolute factual correctness.
+
+---
+
+## Agents
+
+The system is deliberately **one pipeline plus one agent**, not "agents all the way down." A tool-calling agent loop is the wrong shape for live medical retrieval — non-determinism, opaque intermediate steps, and unbounded latency don't serve a domain where the most important property is "I can show you which chunk supported every claim." The pipeline gives that property by construction.
+
+There is, however, exactly one place where an agent earns its keep: **offline evaluation of answer faithfulness.** That's `rag/judge.py`.
+
+### Judge agent (`rag/judge.py`)
+
+A small LLM-as-judge agent that scores whether the generator's answer is faithful to the chunks it was given. It runs in the eval harness, never on the live request path.
+
+**Design choices, all defensible:**
+
+1. **Different model from the generator.** Generator defaults to DeepSeek v3.2; judge defaults to Anthropic Claude Haiku 4.5 via OpenRouter. Same-model judging shares the generator's distributional blind spots — if the generator misread chunk [3] in a particular way, the same model is likely to "agree with itself" when judging. Cross-family routing breaks that shared distribution. Override the judge model with `JUDGE_MODEL` env var or `--judge-model`.
+2. **Chain-of-verification prompting.** The judge is forced to (a) list each factual claim in the answer, (b) identify the cited passage, (c) explain why the cited passage does or does not support the claim. Forcing the judge to *locate* the support is an anti-hallucination guard for the judge itself — if it can't ground its objection in the answer text, it cannot honestly raise it.
+3. **Structured JSON output.** `response_format={"type": "json_object"}` when the provider honours it; a defensive JSON-block extractor handles providers that don't. Downstream code reads typed fields (`faithful`, `citation_valid`, `unsupported_claims[]`, `confidence`, `summary`), never free text.
+4. **Fails open, not closed.** Judge transport errors, parse failures, or missing API keys yield a check status of `skip` — not `fail`. A flaky judge service must never masquerade as a regression in the pipeline under test.
+5. **Signal, not gate.** The judge runs offline. Adding a per-request judge to production would double LLM cost and double latency for a marginal confidence lift; user feedback and observed behaviour are the right production signals.
+
+**Limitations to flag out loud:**
+
+- The judge can hallucinate too. Cross-family routing and chain-of-verification mitigate but do not eliminate this. A stronger version would run the judge K times with varied temperature and majority-vote (self-consistency); easy extension, not implemented.
+- Judge cost is ~1 extra LLM call per evaluated question (~$0.001 with the default Haiku model). Negligible for 18 questions, non-negligible at scale.
+- The judge sees only the reranked chunks the generator saw, plus question and answer. It does not have access to the broader corpus — so a claim that's true-but-uncited will still be flagged as unfaithful. That's the correct behaviour: faithfulness to the cited context is the property the judge is auditing, not omniscient factuality.
 
 ---
 
