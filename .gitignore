@@ -16,3 +16,7 @@ frontend/.svelte-kit/
 data/chroma_db/
 data/raw/
 *.log
+
+# Design-tool context (impeccable skill); kept local, not tracked
+PRODUCT.md
+DESIGN.md
